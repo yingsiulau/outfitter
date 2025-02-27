@@ -25,7 +25,9 @@ export default function Mannequin() {
   // Image states
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
+  const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(
+    null
+  );
 
   // Modal visibility
   const [modalVisible, setModalVisible] = useState(false);
@@ -42,8 +44,12 @@ export default function Mannequin() {
   const [bottomCut, setBottomCut] = useState(0);
 
   // Cropped images
-  const [croppedHoodieImage, setCroppedHoodieImage] = useState<string | null>(null);
-  const [croppedPantsImage, setCroppedPantsImage] = useState<string | null>(null);
+  const [croppedHoodieImage, setCroppedHoodieImage] = useState<string | null>(
+    null
+  );
+  const [croppedPantsImage, setCroppedPantsImage] = useState<string | null>(
+    null
+  );
 
   // On mount, retrieve stored image
   useEffect(() => {
@@ -73,7 +79,8 @@ export default function Mannequin() {
   }, [modalVisible]);
 
   // Toggle lock
-  const toggleSweaterLock = () => setSweaterLock((prev) => (prev === 0 ? 1 : 0));
+  const toggleSweaterLock = () =>
+    setSweaterLock((prev) => (prev === 0 ? 1 : 0));
   const togglePantsLock = () => setPantsLock((prev) => (prev === 0 ? 1 : 0));
   const toggleShoesLock = () => setShoesLock((prev) => (prev === 0 ? 1 : 0));
 
@@ -219,13 +226,25 @@ export default function Mannequin() {
         <div className="mannequin">
           <div className="mannequin-head"></div>
           <div className="mannequin-torso">
-            <img className="Pulli" src={selectedPullover.path} alt={selectedPullover.name} />
+            <img
+              className="Pulli"
+              src={selectedPullover.path}
+              alt={selectedPullover.name}
+            />
           </div>
           <div className="mannequin-legs">
-            <img className="Houses" src={selectedPants.path} alt={selectedPants.name} />
+            <img
+              className="Houses"
+              src={selectedPants.path}
+              alt={selectedPants.name}
+            />
           </div>
           <div className="mannequin-feet">
-            <img className="Shoes" src={selectedShoes.path} alt={selectedShoes.name} />
+            <img
+              className="Shoes"
+              src={selectedShoes.path}
+              alt={selectedShoes.name}
+            />
           </div>
         </div>
       </div>
@@ -233,26 +252,44 @@ export default function Mannequin() {
       {/* Button Menu */}
       <div className="buttonMenu">
         <div className="buttonRow">
-          <button onClick={changePullover} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition">
+          <button
+            onClick={changePullover}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition"
+          >
             Randomize Sweater
           </button>
-          <span onClick={toggleSweaterLock} className={`lockIcon ${sweaterLock === 1 ? "closed" : "open"}`}>
+          <span
+            onClick={toggleSweaterLock}
+            className={`lockIcon ${sweaterLock === 1 ? "closed" : "open"}`}
+          >
             {sweaterLock === 1 ? "🔒" : "🔓"}
           </span>
         </div>
         <div className="buttonRow">
-          <button onClick={changePants} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition">
+          <button
+            onClick={changePants}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition"
+          >
             Randomize Pants
           </button>
-          <span onClick={togglePantsLock} className={`lockIcon ${pantsLock === 1 ? "closed" : "open"}`}>
+          <span
+            onClick={togglePantsLock}
+            className={`lockIcon ${pantsLock === 1 ? "closed" : "open"}`}
+          >
             {pantsLock === 1 ? "🔒" : "🔓"}
           </span>
         </div>
         <div className="buttonRow">
-          <button onClick={changeShoes} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition">
+          <button
+            onClick={changeShoes}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition"
+          >
             Randomize Shoes
           </button>
-          <span onClick={toggleShoesLock} className={`lockIcon ${shoesLock === 1 ? "closed" : "open"}`}>
+          <span
+            onClick={toggleShoesLock}
+            className={`lockIcon ${shoesLock === 1 ? "closed" : "open"}`}
+          >
             {shoesLock === 1 ? "🔒" : "🔓"}
           </span>
         </div>
@@ -303,7 +340,6 @@ export default function Mannequin() {
             onClick={(e) => e.stopPropagation()}
             style={{
               display: "flex",
-              flexDirection: "row",
               width: "90vw",
               height: "90vh",
               backgroundColor: "#333",
@@ -315,7 +351,7 @@ export default function Mannequin() {
             {/* Left Column (Store Items) */}
             <div
               style={{
-                flex: "0 0 30%",
+                flex: "1 1 50%",
                 padding: "1rem",
                 overflowY: "auto",
                 boxSizing: "border-box",
@@ -332,7 +368,9 @@ export default function Mannequin() {
                     textAlign: "center",
                   }}
                 >
-                  <h3 style={{ marginBottom: "0.5rem", fontSize: "0.9rem" }}>Hoodie Crop</h3>
+                  <h3 style={{ marginBottom: "0.5rem", fontSize: "0.9rem" }}>
+                    Hoodie Crop
+                  </h3>
                   <img
                     src={croppedHoodieImage}
                     alt="Hoodie Crop"
@@ -355,7 +393,9 @@ export default function Mannequin() {
                     textAlign: "center",
                   }}
                 >
-                  <h3 style={{ marginBottom: "0.5rem", fontSize: "0.9rem" }}>Pants Crop</h3>
+                  <h3 style={{ marginBottom: "0.5rem", fontSize: "0.9rem" }}>
+                    Pants Crop
+                  </h3>
                   <img
                     src={croppedPantsImage}
                     alt="Pants Crop"
@@ -368,82 +408,16 @@ export default function Mannequin() {
                   />
                 </div>
               )}
-            </div>
 
-            {/* Middle Column (Sliders) */}
-            <div
-              style={{
-                flex: "0 0 20%",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "1rem",
-                boxSizing: "border-box",
-              }}
-            >
-              {/* Sliders in one row, side-by-side */}
+              {/* Buttons */}
               <div
                 style={{
                   display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "end",
-                  width: "100%",
-                  marginBottom: "1rem",
+                  flexDirection: "column",
+                  gap: "1rem",
+                  alignItems: "center",
                 }}
               >
-                {/* Top Slider */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>Top</label>
-                  <input
-                    type="range"
-                    min={0}
-                    max={displayedHeight}
-                    value={topCut}
-                    onChange={(e) => setTopCut(Number(e.target.value))}
-                    style={{
-                      transform: "rotate(-90deg)",
-                      height: "250px",
-                    }}
-                  />
-                </div>
-
-                {/* Mid Slider */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>Mid</label>
-                  <input
-                    type="range"
-                    min={0}
-                    max={displayedHeight}
-                    value={midCut}
-                    onChange={(e) => setMidCut(Number(e.target.value))}
-                    style={{
-                      transform: "rotate(-90deg)",
-                      height: "250px",
-                    }}
-                  />
-                </div>
-
-                {/* Bottom Slider */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>Bot</label>
-                  <input
-                    type="range"
-                    min={0}
-                    max={displayedHeight}
-                    value={bottomCut}
-                    onChange={(e) => setBottomCut(Number(e.target.value))}
-                    style={{
-                      transform: "rotate(-90deg)",
-                      height: "250px",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem", alignItems: "center" }}>
                 <button
                   onClick={() => handleCutImage(processedImageUrl!)}
                   style={{
@@ -478,20 +452,18 @@ export default function Mannequin() {
             {/* Right Column (Processed Image) */}
             <div
               style={{
-                flex: "0 0 50%",
+                flex: "1 1 50%",
+                position: "relative",
                 display: "flex",
                 flexDirection: "column",
-                position: "relative",
                 boxSizing: "border-box",
               }}
             >
-              {/* A container that pins the image at the top */}
               <div
                 style={{
                   flex: 1,
                   position: "relative",
                   overflow: "hidden",
-                  // No centering; pinned top-left
                 }}
               >
                 <img
@@ -499,25 +471,25 @@ export default function Mannequin() {
                   alt="Processed"
                   style={{
                     position: "absolute",
-                    top: 0,
-                    left: 0,
+                    margin: "auto",
+                    top: "0",
+                    left: "0",
+                    bottom: "0",
+                    right: "0",
                     width: "auto",
-                    height: "100%", // fill vertical space
+                    height: "100%",
                     objectFit: "contain",
                   }}
                   onLoad={(e) => {
                     const imgElem = e.currentTarget;
-                    // Measure the actual rendered size
                     const rect = imgElem.getBoundingClientRect();
                     setNaturalWidth(imgElem.naturalWidth);
                     setNaturalHeight(imgElem.naturalHeight);
                     setDisplayedWidth(rect.width);
                     setDisplayedHeight(rect.height);
-
-                    // Reset sliders
-                    setTopCut(0);
-                    setMidCut(rect.height / 2);
-                    setBottomCut(rect.height);
+                    setTopCut(rect.height * 0.1); // Starting at 10% for top
+                    setMidCut(rect.height * 0.2); // Starting at 20% for mid
+                    setBottomCut(rect.height * 0.3); // Starting at 30% for bottom
                   }}
                 />
 
@@ -576,6 +548,127 @@ export default function Mannequin() {
                     pointerEvents: "none",
                   }}
                 />
+              </div>
+            </div>
+
+            {/* Middle Column (Overlaid Controls) */}
+            <div
+              style={{
+                position: "absolute",
+                right: 100,
+                width: "calc(44vw)",
+                height: "calc(100% - 150px)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "1rem",
+                borderRadius: "0.5rem",
+                boxSizing: "border-box",
+                backgroundColor: "rgba(0, 0, 0, 0.6)", // Semi-transparent overlay
+                zIndex: 10,
+              }}
+            >
+              {/* Sliders */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "end",
+                  width: "100%",
+                  marginBottom: "1rem",
+                }}
+              >
+                {/* Top Slider */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>
+                    Top
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={displayedHeight * 0.9} // Ensures top doesn't overlap mid
+                    value={topCut}
+                    onChange={(e) => {
+                      const newTopCut = Math.min(
+                        Number(e.target.value),
+                        midCut - 10 // Top can never be more than 10% less than mid
+                      );
+                      setTopCut(newTopCut);
+                    }}
+                    style={{
+                      transform: "rotate(90deg)",
+                      height: "250px",
+                    }}
+                  />
+                </div>
+
+                {/* Mid Slider */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>
+                    Mid
+                  </label>
+                  <input
+                    type="range"
+                    min={topCut + 10} // Mid should be 10% more than top
+                    max={displayedHeight * 0.8} // Ensures mid doesn't go below 20% from top
+                    value={midCut}
+                    onChange={(e) => {
+                      const newMidCut = Math.min(
+                        Number(e.target.value),
+                        bottomCut - 10 // Mid can never be more than 10% less than bottom
+                      );
+                      setMidCut(newMidCut);
+                    }}
+                    style={{
+                      transform: "rotate(90deg)",
+                      height: "250px",
+                    }}
+                  />
+                </div>
+
+                {/* Bottom Slider */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>
+                    Bot
+                  </label>
+                  <input
+                    type="range"
+                    min={midCut + 10} // Bottom should be 10% more than mid
+                    max={displayedHeight} // Bottom can go till 100%
+                    value={bottomCut}
+                    onChange={(e) => {
+                      const newBottomCut = Math.min(
+                        Number(e.target.value),
+                        displayedHeight // Ensures bottom never exceeds the full height
+                      );
+                      setBottomCut(newBottomCut);
+                    }}
+                    style={{
+                      transform: "rotate(90deg)",
+                      height: "250px",
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
