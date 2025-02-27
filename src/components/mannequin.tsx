@@ -1,6 +1,6 @@
-"use client"; // Required for state in Next.js App Router
+"use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getPullovers, getShoes, getPants } from "../functions/clothIndex";
 import { processImage } from "../functions/imageHelper";
 
@@ -9,38 +9,43 @@ export default function Mannequin() {
   const shoes = getShoes();
   const pants = getPants();
 
-  // Sweater (Pullover) state
+  // Clothing state
   const [currentPulliIndex, setCurrentPulliIndex] = useState(0);
   const [selectedPullover, setSelectedPullover] = useState(pullovers[0]);
-
-  // Shoes state
   const [currentShoesIndex, setCurrentShoesIndex] = useState(0);
   const [selectedShoes, setSelectedShoes] = useState(shoes[0]);
-
-  // Pants state
   const [currentPantsIndex, setCurrentPantsIndex] = useState(0);
   const [selectedPants, setSelectedPants] = useState(pants[0]);
 
-  // Lock states for each item (0 = open, 1 = locked)
+  // Lock states
   const [sweaterLock, setSweaterLock] = useState(0);
   const [pantsLock, setPantsLock] = useState(0);
   const [shoesLock, setShoesLock] = useState(0);
 
-  // Image Upload state (original image)
+  // Image states
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
 
-  // Processed image state (result from outsourced processing)
-  const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(
-    null
-  );
-  // Modal visibility state for processed image popup
+  // Modal visibility
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Cutter
-  const [split, setSplit] = useState(50); // Initial split at 50%
+  // Dimensions for the processed image
+  const [naturalWidth, setNaturalWidth] = useState(0);
+  const [naturalHeight, setNaturalHeight] = useState(0);
+  const [displayedWidth, setDisplayedWidth] = useState(0);
+  const [displayedHeight, setDisplayedHeight] = useState(0);
 
-  // On mount, check if an image is stored in localStorage
+  // Slider states (in displayed pixels)
+  const [topCut, setTopCut] = useState(0);
+  const [midCut, setMidCut] = useState(0);
+  const [bottomCut, setBottomCut] = useState(0);
+
+  // Cropped images
+  const [croppedHoodieImage, setCroppedHoodieImage] = useState<string | null>(null);
+  const [croppedPantsImage, setCroppedPantsImage] = useState<string | null>(null);
+
+  // On mount, retrieve stored image
   useEffect(() => {
     const storedImage = localStorage.getItem("uploadedImage");
     if (storedImage) {
@@ -48,7 +53,7 @@ export default function Mannequin() {
     }
   }, []);
 
-  // Process the uploaded image via the helper function when its URL changes
+  // Process image whenever uploadedImageUrl changes
   useEffect(() => {
     if (uploadedImageUrl) {
       (async () => {
@@ -62,22 +67,17 @@ export default function Mannequin() {
     }
   }, [uploadedImageUrl]);
 
-  // Log lock values whenever they change
+  // Prevent background scrolling when modal is open
   useEffect(() => {
-    console.log("Lock values:", {
-      sweater: sweaterLock,
-      pants: pantsLock,
-      shoes: shoesLock,
-    });
-  }, [sweaterLock, pantsLock, shoesLock]);
+    document.body.style.overflow = modalVisible ? "hidden" : "";
+  }, [modalVisible]);
 
-  // Toggle functions for each lock
-  const toggleSweaterLock = () =>
-    setSweaterLock((prev) => (prev === 0 ? 1 : 0));
+  // Toggle lock
+  const toggleSweaterLock = () => setSweaterLock((prev) => (prev === 0 ? 1 : 0));
   const togglePantsLock = () => setPantsLock((prev) => (prev === 0 ? 1 : 0));
   const toggleShoesLock = () => setShoesLock((prev) => (prev === 0 ? 1 : 0));
 
-  // Individual randomizers (avoiding the same item consecutively)
+  // Randomizers
   const changePullover = () => {
     if (pullovers.length < 2) return;
     let randomIndex = Math.floor(Math.random() * pullovers.length);
@@ -108,27 +108,25 @@ export default function Mannequin() {
     setCurrentShoesIndex(randomIndex);
   };
 
-  // Randomize all clothing pieces if they're not locked.
-  // Unlike the individual randomizers, this one can pick the same piece twice.
   const randomizeAll = () => {
     if (sweaterLock === 0) {
-      const randomIndex = Math.floor(Math.random() * pullovers.length);
-      setSelectedPullover(pullovers[randomIndex]);
-      setCurrentPulliIndex(randomIndex);
+      const r1 = Math.floor(Math.random() * pullovers.length);
+      setSelectedPullover(pullovers[r1]);
+      setCurrentPulliIndex(r1);
     }
     if (pantsLock === 0) {
-      const randomIndex = Math.floor(Math.random() * pants.length);
-      setSelectedPants(pants[randomIndex]);
-      setCurrentPantsIndex(randomIndex);
+      const r2 = Math.floor(Math.random() * pants.length);
+      setSelectedPants(pants[r2]);
+      setCurrentPantsIndex(r2);
     }
     if (shoesLock === 0) {
-      const randomIndex = Math.floor(Math.random() * shoes.length);
-      setSelectedShoes(shoes[randomIndex]);
-      setCurrentShoesIndex(randomIndex);
+      const r3 = Math.floor(Math.random() * shoes.length);
+      setSelectedShoes(shoes[r3]);
+      setCurrentShoesIndex(r3);
     }
   };
 
-  // Image upload handling (the image is not displayed on the main page)
+  // Image upload
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
@@ -137,7 +135,6 @@ export default function Mannequin() {
       reader.onloadend = () => {
         const result = reader.result as string;
         setUploadedImageUrl(result);
-        // Store the image data in localStorage for persistence
         localStorage.setItem("uploadedImage", result);
       };
       reader.readAsDataURL(file);
@@ -151,145 +148,117 @@ export default function Mannequin() {
     localStorage.removeItem("uploadedImage");
   };
 
+  // Cropping logic
   const handleCutImage = (imageUrl: string) => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.src = imageUrl;
+    img.onload = () => {
+      if (naturalHeight === 0 || displayedHeight === 0) {
+        console.error("Image dimension info not available yet.");
+        return;
+      }
+      if (!(topCut < midCut && midCut < bottomCut)) {
+        console.error("Invalid crop positions: ensure top < mid < bottom.");
+        return;
+      }
 
-    if (ctx) {
-      const img = new Image();
-      img.src = imageUrl;
-      img.onload = () => {
-        // Get the original dimensions of the image
-        const imgWidth = img.width;
-        const imgHeight = img.height;
+      // Convert from displayed coords to natural coords
+      const ratio = naturalHeight / displayedHeight;
+      const topY = topCut * ratio;
+      const midY = midCut * ratio;
+      const bottomY = bottomCut * ratio;
 
-        // Calculate the new height for the top and bottom parts based on the slider (split)
-        const cutHeight = (split / 100) * imgHeight;
-
-        // Create the top part (cut from 0 to split)
-        const topHeight = cutHeight;
-        canvas.width = imgWidth; // Canvas width remains the same as the original image
-        canvas.height = topHeight; // Set canvas height to the top part's height
-        ctx.drawImage(
+      // Crop hoodie
+      const hoodieHeight = midY - topY;
+      const canvasHoodie = document.createElement("canvas");
+      canvasHoodie.width = img.width;
+      canvasHoodie.height = hoodieHeight;
+      const ctxHoodie = canvasHoodie.getContext("2d");
+      if (ctxHoodie) {
+        ctxHoodie.drawImage(
           img,
           0,
+          topY,
+          img.width,
+          hoodieHeight,
           0,
-          imgWidth,
-          topHeight,
           0,
-          0,
-          imgWidth,
-          topHeight
+          img.width,
+          hoodieHeight
         );
-        const topImageUrl = canvas.toDataURL(); // Top image as Data URL
+        setCroppedHoodieImage(canvasHoodie.toDataURL());
+      }
 
-        // Create the bottom part (cut from split to the bottom)
-        const bottomHeight = imgHeight - cutHeight;
-        canvas.height = bottomHeight; // Update canvas height for the bottom part
-        ctx.clearRect(0, 0, imgWidth, bottomHeight); // Clear canvas before drawing the bottom part
-        ctx.drawImage(
+      // Crop pants
+      const pantsHeight = bottomY - midY;
+      const canvasPants = document.createElement("canvas");
+      canvasPants.width = img.width;
+      canvasPants.height = pantsHeight;
+      const ctxPants = canvasPants.getContext("2d");
+      if (ctxPants) {
+        ctxPants.drawImage(
           img,
           0,
-          cutHeight,
-          imgWidth,
-          bottomHeight,
+          midY,
+          img.width,
+          pantsHeight,
           0,
           0,
-          imgWidth,
-          bottomHeight
+          img.width,
+          pantsHeight
         );
-        const bottomImageUrl = canvas.toDataURL(); // Bottom image as Data URL
-
-        // Log the resized images
-        console.log("Top Image URL: ", topImageUrl);
-        console.log("Bottom Image URL: ", bottomImageUrl);
-
-        // Optionally, you can set the state with the new URLs to display them
-        // setProcessedImageUrl(topImageUrl); // Example
-        // setBottomImageUrl(bottomImageUrl); // Example
-      };
-    } else {
-      console.error("2D context not supported or canvas already initialized");
-    }
+        setCroppedPantsImage(canvasPants.toDataURL());
+      }
+    };
   };
 
   return (
     <div>
+      {/* Mannequin Display */}
       <div className="mannequin-container flex flex-col items-center gap-4">
-        {/* Mannequin */}
         <div className="mannequin">
           <div className="mannequin-head"></div>
           <div className="mannequin-torso">
-            <img
-              className="Pulli"
-              src={selectedPullover.path}
-              alt={selectedPullover.name}
-            />
+            <img className="Pulli" src={selectedPullover.path} alt={selectedPullover.name} />
           </div>
           <div className="mannequin-legs">
-            <img
-              className="Houses"
-              src={selectedPants.path}
-              alt={selectedPants.name}
-            />
+            <img className="Houses" src={selectedPants.path} alt={selectedPants.name} />
           </div>
           <div className="mannequin-feet">
-            <img
-              className="Shoes"
-              src={selectedShoes.path}
-              alt={selectedShoes.name}
-            />
+            <img className="Shoes" src={selectedShoes.path} alt={selectedShoes.name} />
           </div>
         </div>
       </div>
 
-      {/* Button Menu with Lock Icons */}
+      {/* Button Menu */}
       <div className="buttonMenu">
         <div className="buttonRow">
-          <button
-            onClick={changePullover}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition"
-          >
+          <button onClick={changePullover} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition">
             Randomize Sweater
           </button>
-          <span
-            onClick={toggleSweaterLock}
-            className={`lockIcon ${sweaterLock === 1 ? "closed" : "open"}`}
-          >
+          <span onClick={toggleSweaterLock} className={`lockIcon ${sweaterLock === 1 ? "closed" : "open"}`}>
             {sweaterLock === 1 ? "🔒" : "🔓"}
           </span>
         </div>
         <div className="buttonRow">
-          <button
-            onClick={changePants}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition"
-          >
+          <button onClick={changePants} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition">
             Randomize Pants
           </button>
-          <span
-            onClick={togglePantsLock}
-            className={`lockIcon ${pantsLock === 1 ? "closed" : "open"}`}
-          >
+          <span onClick={togglePantsLock} className={`lockIcon ${pantsLock === 1 ? "closed" : "open"}`}>
             {pantsLock === 1 ? "🔒" : "🔓"}
           </span>
         </div>
         <div className="buttonRow">
-          <button
-            onClick={changeShoes}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition"
-          >
+          <button onClick={changeShoes} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition">
             Randomize Shoes
           </button>
-          <span
-            onClick={toggleShoesLock}
-            className={`lockIcon ${shoesLock === 1 ? "closed" : "open"}`}
-          >
+          <span onClick={toggleShoesLock} className={`lockIcon ${shoesLock === 1 ? "closed" : "open"}`}>
             {shoesLock === 1 ? "🔒" : "🔓"}
           </span>
         </div>
       </div>
 
-      {/* Image Upload Widget (no preview shown on main page) */}
+      {/* Image Upload Widget */}
       <div className="imageUploadWidget">
         <h3>Upload an Image</h3>
         <input type="file" accept="image/*" onChange={handleImageChange} />
@@ -300,7 +269,7 @@ export default function Mannequin() {
         )}
       </div>
 
-      {/* Button to show the processed image as a popup widget (positioned on the right) */}
+      {/* Show Processed Image Button */}
       <div className="processedImageButton">
         <button
           onClick={() => setModalVisible(true)}
@@ -311,50 +280,304 @@ export default function Mannequin() {
         </button>
       </div>
 
-      {/* Modal Popup for Processed Image */}
+      {/* Modal Popup */}
       {modalVisible && processedImageUrl && (
-        <div className="modalOverlay" onClick={() => setModalVisible(false)}>
-          <div className="modalContent" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="closeButton"
-              onClick={() => setModalVisible(false)}
+        <div
+          className="modalOverlay"
+          onClick={() => setModalVisible(false)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="modalContent"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              width: "90vw",
+              height: "90vh",
+              backgroundColor: "#333",
+              color: "#fff",
+              borderRadius: "0.5rem",
+              overflow: "hidden",
+            }}
+          >
+            {/* Left Column (Store Items) */}
+            <div
+              style={{
+                flex: "0 0 30%",
+                padding: "1rem",
+                overflowY: "auto",
+                boxSizing: "border-box",
+              }}
             >
-              Close
-            </button>
-
-            {/* Image Display Container */}
-            <div className="relative w-full max-w-lg mx-auto">
-              {/* Full Image with 70% viewport height */}
-              <img
-                src={processedImageUrl}
-                alt="Processed"
-                className="w-full object-cover"
-                style={{ height: "70vh", objectFit: "contain" }} // Prevent cropping
-              />
-
-              {/* Helper Line (Red Line at Cut) */}
-              <div
-                className="absolute left-0 w-full h-1 bg-red-500"
-                style={{ top: `${split}%` }} // Red line moves with the slider
-              ></div>
+              {croppedHoodieImage && (
+                <div
+                  style={{
+                    border: "2px solid #777",
+                    borderRadius: "8px",
+                    backgroundColor: "#444",
+                    padding: "0.5rem",
+                    marginBottom: "1rem",
+                    textAlign: "center",
+                  }}
+                >
+                  <h3 style={{ marginBottom: "0.5rem", fontSize: "0.9rem" }}>Hoodie Crop</h3>
+                  <img
+                    src={croppedHoodieImage}
+                    alt="Hoodie Crop"
+                    style={{
+                      width: "100%",
+                      height: "auto",
+                      maxHeight: "150px",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+              )}
+              {croppedPantsImage && (
+                <div
+                  style={{
+                    border: "2px solid #777",
+                    borderRadius: "8px",
+                    backgroundColor: "#444",
+                    padding: "0.5rem",
+                    textAlign: "center",
+                  }}
+                >
+                  <h3 style={{ marginBottom: "0.5rem", fontSize: "0.9rem" }}>Pants Crop</h3>
+                  <img
+                    src={croppedPantsImage}
+                    alt="Pants Crop"
+                    style={{
+                      width: "100%",
+                      height: "auto",
+                      maxHeight: "150px",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Slider to Adjust the Position of the Red Line */}
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={split}
-              onChange={(e) => setSplit(Number(e.target.value))}
-              className="w-full mt-4"
-            />
-
-            <button
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition mt-4"
-              onClick={() => handleCutImage(processedImageUrl)}
+            {/* Middle Column (Sliders) */}
+            <div
+              style={{
+                flex: "0 0 20%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "1rem",
+                boxSizing: "border-box",
+              }}
             >
-              Cut Image and Log New Images
-            </button>
+              {/* Sliders in one row, side-by-side */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "end",
+                  width: "100%",
+                  marginBottom: "1rem",
+                }}
+              >
+                {/* Top Slider */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>Top</label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={displayedHeight}
+                    value={topCut}
+                    onChange={(e) => setTopCut(Number(e.target.value))}
+                    style={{
+                      transform: "rotate(-90deg)",
+                      height: "250px",
+                    }}
+                  />
+                </div>
+
+                {/* Mid Slider */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>Mid</label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={displayedHeight}
+                    value={midCut}
+                    onChange={(e) => setMidCut(Number(e.target.value))}
+                    style={{
+                      transform: "rotate(-90deg)",
+                      height: "250px",
+                    }}
+                  />
+                </div>
+
+                {/* Bottom Slider */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>Bot</label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={displayedHeight}
+                    value={bottomCut}
+                    onChange={(e) => setBottomCut(Number(e.target.value))}
+                    style={{
+                      transform: "rotate(-90deg)",
+                      height: "250px",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem", alignItems: "center" }}>
+                <button
+                  onClick={() => handleCutImage(processedImageUrl!)}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    backgroundColor: "#3b82f6",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "0.375rem",
+                    cursor: "pointer",
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  Cut & Update
+                </button>
+                <button
+                  onClick={() => setModalVisible(false)}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    backgroundColor: "#3b82f6",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "0.375rem",
+                    cursor: "pointer",
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            {/* Right Column (Processed Image) */}
+            <div
+              style={{
+                flex: "0 0 50%",
+                display: "flex",
+                flexDirection: "column",
+                position: "relative",
+                boxSizing: "border-box",
+              }}
+            >
+              {/* A container that pins the image at the top */}
+              <div
+                style={{
+                  flex: 1,
+                  position: "relative",
+                  overflow: "hidden",
+                  // No centering; pinned top-left
+                }}
+              >
+                <img
+                  src={processedImageUrl}
+                  alt="Processed"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "auto",
+                    height: "100%", // fill vertical space
+                    objectFit: "contain",
+                  }}
+                  onLoad={(e) => {
+                    const imgElem = e.currentTarget;
+                    // Measure the actual rendered size
+                    const rect = imgElem.getBoundingClientRect();
+                    setNaturalWidth(imgElem.naturalWidth);
+                    setNaturalHeight(imgElem.naturalHeight);
+                    setDisplayedWidth(rect.width);
+                    setDisplayedHeight(rect.height);
+
+                    // Reset sliders
+                    setTopCut(0);
+                    setMidCut(rect.height / 2);
+                    setBottomCut(rect.height);
+                  }}
+                />
+
+                {/* Red cropping lines */}
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    width: "100%",
+                    height: "2px",
+                    backgroundColor: "red",
+                    top: `${topCut}px`,
+                  }}
+                ></div>
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    width: "100%",
+                    height: "2px",
+                    backgroundColor: "red",
+                    top: `${midCut}px`,
+                  }}
+                ></div>
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    width: "100%",
+                    height: "2px",
+                    backgroundColor: "red",
+                    top: `${bottomCut}px`,
+                  }}
+                ></div>
+
+                {/* Overlays for non-selected regions */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: `${topCut}px`,
+                    backgroundColor: "rgba(0,0,0,0.3)",
+                    pointerEvents: "none",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    top: `${bottomCut}px`,
+                    left: 0,
+                    width: "100%",
+                    height: `calc(100% - ${bottomCut}px)`,
+                    backgroundColor: "rgba(0,0,0,0.3)",
+                    pointerEvents: "none",
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
