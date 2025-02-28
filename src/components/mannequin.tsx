@@ -1,7 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { getPullovers, getShoes, getPants } from "../functions/clothIndex";
+import { useState, useEffect } from "react";
+import {
+  getPullovers,
+  getShoes,
+  getPants,
+  addPullover,
+  addPants,
+} from "../functions/clothIndex";
 import { processImage } from "../functions/imageHelper";
 
 export default function Mannequin() {
@@ -25,12 +31,19 @@ export default function Mannequin() {
   // Image states
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(
-    null
-  );
+  const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
 
-  // Modal visibility
+  // Modal visibility for the processed image
   const [modalVisible, setModalVisible] = useState(false);
+
+  // New Save Piece Modal state
+  type Category = "pullover" | "pants";
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [pieceToSave, setPieceToSave] = useState<{
+    category: Category;
+    image: string;
+  } | null>(null);
+  const [newPieceName, setNewPieceName] = useState("");
 
   // Dimensions for the processed image
   const [naturalWidth, setNaturalWidth] = useState(0);
@@ -39,28 +52,22 @@ export default function Mannequin() {
   const [displayedHeight, setDisplayedHeight] = useState(0);
 
   // State for cuts
-  const [topCut, setTopCut] = useState(0); // Initial topCut value (25% of displayHeight)
-  const [midCut, setMidCut] = useState(displayedHeight * 0.5); // Initial midCut value (50% of displayHeight)
-  const [bottomCut, setBottomCut] = useState(displayedHeight); // Initial bottomCut value (75% of displayHeight)
+  const [topCut, setTopCut] = useState(0);
+  const [midCut, setMidCut] = useState(displayedHeight * 0.5);
+  const [bottomCut, setBottomCut] = useState(displayedHeight);
 
   // Adjusted min and max values for each cut
-  const tenPercent = displayedHeight * 0.1; // 10% of displayedHeight
+  const tenPercent = displayedHeight * 0.1;
   const topCutMin = 0;
   const topCutMax = midCut - tenPercent;
-
   const midCutMin = topCut + tenPercent;
   const midCutMax = bottomCut - tenPercent;
-
   const bottomCutMin = midCut + tenPercent;
   const bottomCutMax = displayedHeight;
 
   // Cropped images
-  const [croppedHoodieImage, setCroppedHoodieImage] = useState<string | null>(
-    null
-  );
-  const [croppedPantsImage, setCroppedPantsImage] = useState<string | null>(
-    null
-  );
+  const [croppedHoodieImage, setCroppedHoodieImage] = useState<string | null>(null);
+  const [croppedPantsImage, setCroppedPantsImage] = useState<string | null>(null);
 
   // On mount, retrieve stored image
   useEffect(() => {
@@ -87,8 +94,8 @@ export default function Mannequin() {
 
   // Prevent background scrolling when modal is open
   useEffect(() => {
-    document.body.style.overflow = modalVisible ? "hidden" : "";
-  }, [modalVisible]);
+    document.body.style.overflow = modalVisible || saveModalVisible ? "hidden" : "";
+  }, [modalVisible, saveModalVisible]);
 
   // Toggle lock
   const toggleSweaterLock = () =>
@@ -234,26 +241,42 @@ export default function Mannequin() {
 
   const handleTopCutChange = (e: any) => {
     const newTopCut = Number(e.target.value);
-    console.log(newTopCut);
-    console.log(displayedHeight);
     setTopCut(newTopCut);
-
-    // Ensure midCut and bottomCut stay within valid ranges
-    setMidCut(Math.max(midCut, newTopCut + tenPercent)); // midCut can't go below topCut + 10%
-    setBottomCut(Math.max(bottomCut, midCut + tenPercent)); // bottomCut can't go below midCut + 10%
+    setMidCut(Math.max(midCut, newTopCut + tenPercent));
+    setBottomCut(Math.max(bottomCut, midCut + tenPercent));
   };
 
   const handleMidCutChange = (e: any) => {
     const newMidCut = Number(e.target.value);
     setMidCut(newMidCut);
-
-    // Ensure bottomCut stays valid
-    setBottomCut(Math.max(bottomCut, newMidCut + tenPercent)); // bottomCut can't go below midCut + 10%
+    setBottomCut(Math.max(bottomCut, newMidCut + tenPercent));
   };
 
   const handleBottomCutChange = (e: any) => {
     const newBottomCut = Number(e.target.value);
     setBottomCut(newBottomCut);
+  };
+
+  // Open the "save piece" modal for a given category and image
+  const openSaveModal = (category: "pullover" | "pants", image: string | null) => {
+    if (!image) return;
+    // Optionally close the processed image modal
+    setModalVisible(false);
+    setPieceToSave({ category, image });
+    setNewPieceName("");
+    setSaveModalVisible(true);
+  };
+
+  // Handle saving the new piece into the appropriate category in localStorage
+  const handleSavePiece = () => {
+    if (!pieceToSave || newPieceName.trim() === "") return;
+    if (pieceToSave.category === "pullover") {
+      addPullover({ name: newPieceName, path: pieceToSave.image });
+    } else if (pieceToSave.category === "pants") {
+      addPants({ name: newPieceName, path: pieceToSave.image });
+    }
+    setSaveModalVisible(false);
+    setPieceToSave(null);
   };
 
   return (
@@ -352,17 +375,12 @@ export default function Mannequin() {
         >
           Show Processed Image
         </button>
-
         <div>
-          {!processedImageUrl ? (
-            <div>No image</div>
-          ) : (
-            <span>image available</span>
-          )}
+          {!processedImageUrl ? <div>No image</div> : <span>image available</span>}
         </div>
       </div>
 
-      {/* Modal Popup */}
+      {/* Processed Image Modal */}
       {modalVisible && processedImageUrl && (
         <div
           className="modalOverlay"
@@ -426,6 +444,20 @@ export default function Mannequin() {
                       objectFit: "contain",
                     }}
                   />
+                  <button
+                    className="redButton"
+                    onClick={() => setCroppedHoodieImage(null)}
+                  >
+                    Trash
+                  </button>
+                  <button
+                    className="greenButton"
+                    onClick={() =>
+                      openSaveModal("pullover", croppedHoodieImage)
+                    }
+                  >
+                    Keep
+                  </button>
                 </div>
               )}
               {croppedPantsImage && (
@@ -451,9 +483,20 @@ export default function Mannequin() {
                       objectFit: "contain",
                     }}
                   />
+                  <button
+                    className="redButton"
+                    onClick={() => setCroppedPantsImage(null)}
+                  >
+                    Trash
+                  </button>
+                  <button
+                    className="greenButton"
+                    onClick={() => openSaveModal("pants", croppedPantsImage)}
+                  >
+                    Keep
+                  </button>
                 </div>
               )}
-
               {/* Buttons */}
               <div
                 style={{
@@ -494,7 +537,7 @@ export default function Mannequin() {
               </div>
             </div>
 
-            {/* Right Column (Processed Image) */}
+            {/* Right Column (Processed Image and Cropping Controls) */}
             <div
               style={{
                 flex: "1 1 50%",
@@ -532,12 +575,11 @@ export default function Mannequin() {
                     setNaturalHeight(imgElem.naturalHeight);
                     setDisplayedWidth(rect.width);
                     setDisplayedHeight(rect.height);
-                    setTopCut(rect.height * 0.1); // Starting at 10% for top
-                    setMidCut(rect.height * 0.2); // Starting at 20% for mid
-                    setBottomCut(rect.height * 0.3); // Starting at 30% for bottom
+                    setTopCut(rect.height * 0.1);
+                    setMidCut(rect.height * 0.2);
+                    setBottomCut(rect.height * 0.3);
                   }}
                 />
-
                 {/* Red cropping lines */}
                 <div
                   style={{
@@ -569,7 +611,6 @@ export default function Mannequin() {
                     top: `${bottomCut}px`,
                   }}
                 ></div>
-
                 {/* Overlays for non-selected regions */}
                 <div
                   style={{
@@ -618,9 +659,11 @@ export default function Mannequin() {
                 }}
               >
                 {/* Top Slider */}
-                <div        style={{
-                      height: displayedHeight * 0.333,
-                    }}>
+                <div
+                  style={{
+                    height: displayedHeight * 0.333,
+                  }}
+                >
                   <input
                     type="range"
                     min={topCutMin}
@@ -633,7 +676,6 @@ export default function Mannequin() {
                     }}
                   />
                 </div>
-
                 {/* Mid Slider */}
                 <div>
                   <input
@@ -648,7 +690,6 @@ export default function Mannequin() {
                     }}
                   />
                 </div>
-
                 {/* Bottom Slider */}
                 <div>
                   <input
@@ -664,6 +705,92 @@ export default function Mannequin() {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save Piece Modal */}
+      {saveModalVisible && pieceToSave && (
+        <div
+          className="modalOverlay"
+          onClick={() => setSaveModalVisible(false)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1100,
+          }}
+        >
+          <div
+            className="modalContent"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: "#333",
+              color: "#fff",
+              borderRadius: "0.5rem",
+              width: "50vw",
+              padding: "1rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+            }}
+          >
+            <div style={{ display: "flex", gap: "1rem" }}>
+              {/* Left: Image Preview */}
+              <div style={{ flex: 1 }}>
+                <img
+                  src={pieceToSave.image}
+                  alt="Piece to Save"
+                  style={{
+                    width: "100%",
+                    height: "auto",
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+              {/* Right: Name Input */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <input
+                  type="text"
+                  value={newPieceName}
+                  onChange={(e) => setNewPieceName(e.target.value)}
+                  placeholder="Enter piece name"
+                  style={{
+                    width: "100%",
+                    padding: "0.5rem",
+                    fontSize: "1rem",
+                  }}
+                />
+              </div>
+            </div>
+            {/* Bottom Buttons */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <button
+                onClick={() => setSaveModalVisible(false)}
+                className="closeButton"
+                style={{ padding: "0.5rem 1rem" }}
+              >
+                Close
+              </button>
+              <button
+                onClick={handleSavePiece}
+                className="greenButton"
+                style={{ padding: "0.5rem 1rem" }}
+              >
+                Save
+              </button>
             </div>
           </div>
         </div>
