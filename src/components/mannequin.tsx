@@ -38,10 +38,21 @@ export default function Mannequin() {
   const [displayedWidth, setDisplayedWidth] = useState(0);
   const [displayedHeight, setDisplayedHeight] = useState(0);
 
-  // Slider states (in displayed pixels)
-  const [topCut, setTopCut] = useState(0);
-  const [midCut, setMidCut] = useState(0);
-  const [bottomCut, setBottomCut] = useState(0);
+  // State for cuts
+  const [topCut, setTopCut] = useState(0); // Initial topCut value (25% of displayHeight)
+  const [midCut, setMidCut] = useState(displayedHeight * 0.5); // Initial midCut value (50% of displayHeight)
+  const [bottomCut, setBottomCut] = useState(displayedHeight); // Initial bottomCut value (75% of displayHeight)
+
+  // Adjusted min and max values for each cut
+  const tenPercent = displayedHeight * 0.1; // 10% of displayedHeight
+  const topCutMin = 0;
+  const topCutMax = midCut - tenPercent;
+
+  const midCutMin = topCut + tenPercent;
+  const midCutMax = bottomCut - tenPercent;
+
+  const bottomCutMin = midCut + tenPercent;
+  const bottomCutMax = displayedHeight;
 
   // Cropped images
   const [croppedHoodieImage, setCroppedHoodieImage] = useState<string | null>(
@@ -70,6 +81,7 @@ export default function Mannequin() {
           console.error("Error processing image:", error);
         }
       })();
+      console.log("processed");
     }
   }, [uploadedImageUrl]);
 
@@ -145,6 +157,7 @@ export default function Mannequin() {
         localStorage.setItem("uploadedImage", result);
       };
       reader.readAsDataURL(file);
+      console.log("uploaded");
     }
   };
 
@@ -217,6 +230,30 @@ export default function Mannequin() {
         setCroppedPantsImage(canvasPants.toDataURL());
       }
     };
+  };
+
+  const handleTopCutChange = (e: any) => {
+    const newTopCut = Number(e.target.value);
+    console.log(newTopCut);
+    console.log(displayedHeight);
+    setTopCut(newTopCut);
+
+    // Ensure midCut and bottomCut stay within valid ranges
+    setMidCut(Math.max(midCut, newTopCut + tenPercent)); // midCut can't go below topCut + 10%
+    setBottomCut(Math.max(bottomCut, midCut + tenPercent)); // bottomCut can't go below midCut + 10%
+  };
+
+  const handleMidCutChange = (e: any) => {
+    const newMidCut = Number(e.target.value);
+    setMidCut(newMidCut);
+
+    // Ensure bottomCut stays valid
+    setBottomCut(Math.max(bottomCut, newMidCut + tenPercent)); // bottomCut can't go below midCut + 10%
+  };
+
+  const handleBottomCutChange = (e: any) => {
+    const newBottomCut = Number(e.target.value);
+    setBottomCut(newBottomCut);
   };
 
   return (
@@ -315,6 +352,14 @@ export default function Mannequin() {
         >
           Show Processed Image
         </button>
+
+        <div>
+          {!processedImageUrl ? (
+            <div>No image</div>
+          ) : (
+            <span>image available</span>
+          )}
+        </div>
       </div>
 
       {/* Modal Popup */}
@@ -558,22 +603,14 @@ export default function Mannequin() {
                 right: 100,
                 width: "calc(44vw)",
                 height: "calc(100% - 150px)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
                 justifyContent: "space-between",
-                padding: "1rem",
-                borderRadius: "0.5rem",
-                boxSizing: "border-box",
-                backgroundColor: "rgba(0, 0, 0, 0.6)", // Semi-transparent overlay
                 zIndex: 10,
               }}
             >
-              {/* Sliders */}
               <div
                 style={{
                   display: "flex",
-                  flexDirection: "row",
+                  flexDirection: "column",
                   justifyContent: "space-between",
                   alignItems: "end",
                   width: "100%",
@@ -581,91 +618,48 @@ export default function Mannequin() {
                 }}
               >
                 {/* Top Slider */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
-                >
-                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>
-                    Top
-                  </label>
+                <div        style={{
+                      height: displayedHeight * 0.333,
+                    }}>
                   <input
                     type="range"
-                    min={0}
-                    max={displayedHeight * 0.9} // Ensures top doesn't overlap mid
+                    min={topCutMin}
+                    max={topCutMax}
                     value={topCut}
-                    onChange={(e) => {
-                      const newTopCut = Math.min(
-                        Number(e.target.value),
-                        midCut - 10 // Top can never be more than 10% less than mid
-                      );
-                      setTopCut(newTopCut);
-                    }}
+                    onChange={handleTopCutChange}
                     style={{
                       transform: "rotate(90deg)",
-                      height: "250px",
+                      height: displayedHeight * 0.333,
                     }}
                   />
                 </div>
 
                 {/* Mid Slider */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
-                >
-                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>
-                    Mid
-                  </label>
+                <div>
                   <input
                     type="range"
-                    min={topCut + 10} // Mid should be 10% more than top
-                    max={displayedHeight * 0.8} // Ensures mid doesn't go below 20% from top
+                    min={midCutMin}
+                    max={midCutMax}
                     value={midCut}
-                    onChange={(e) => {
-                      const newMidCut = Math.min(
-                        Number(e.target.value),
-                        bottomCut - 10 // Mid can never be more than 10% less than bottom
-                      );
-                      setMidCut(newMidCut);
-                    }}
+                    onChange={handleMidCutChange}
                     style={{
                       transform: "rotate(90deg)",
-                      height: "250px",
+                      height: displayedHeight * 0.333,
                     }}
                   />
                 </div>
 
                 {/* Bottom Slider */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
-                >
-                  <label style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>
-                    Bot
-                  </label>
+                <div>
                   <input
                     type="range"
-                    min={midCut + 10} // Bottom should be 10% more than mid
-                    max={displayedHeight} // Bottom can go till 100%
+                    min={bottomCutMin}
+                    max={bottomCutMax}
                     value={bottomCut}
-                    onChange={(e) => {
-                      const newBottomCut = Math.min(
-                        Number(e.target.value),
-                        displayedHeight // Ensures bottom never exceeds the full height
-                      );
-                      setBottomCut(newBottomCut);
-                    }}
+                    onChange={handleBottomCutChange}
                     style={{
                       transform: "rotate(90deg)",
-                      height: "250px",
+                      height: displayedHeight * 0.333,
                     }}
                   />
                 </div>
